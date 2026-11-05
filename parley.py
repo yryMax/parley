@@ -17,7 +17,7 @@ from _types import (
     Feedback,
     TreeNode,
 )
-from models import chat_mistral, chat_openai, chat_together
+from models import chat_openrouter
 from prompts import (
     get_prompt_for_evaluator_score,
     get_prompt_for_evaluator_on_topic,
@@ -26,15 +26,16 @@ from prompts import (
 )
 
 Models: t.Dict[str, t.Tuple] = {
-    "gpt-3.5": (chat_openai, "gpt-3.5-turbo"),
-    "gpt-4": (chat_openai, "gpt-4"),
-    "gpt-4-turbo": (chat_openai, "gpt-4-1106-preview"),
-    "llama-13b": (chat_together, "togethercomputer/llama-2-13b-chat"),
-    "llama-70b": (chat_together, "togethercomputer/llama-2-70b-chat"),
-    "vicuna-13b": (chat_together, "lmsys/vicuna-13b-v1.5"),
-    "mistral-small-together": (chat_together, "mistralai/Mixtral-8x7B-Instruct-v0.1"),
-    "mistral-small": (chat_mistral, "mistral-small"),
-    "mistral-medium": (chat_mistral, "mistral-medium"),
+    # All models are routed through OpenRouter (OPENAI_COMPATIBLE_* in .env)
+    # openai/gpt-3.5-* and openai/gpt-4 are Azure-only on OpenRouter, so they're unavailable while Azure is ignored
+    "gpt-4-turbo": (chat_openrouter, "openai/gpt-4o"),
+    "gpt-4o": (chat_openrouter, "openai/gpt-4o"),
+    "gpt-4o-mini": (chat_openrouter, "openai/gpt-4o-mini"),
+    "llama-8b": (chat_openrouter, "meta-llama/llama-3.1-8b-instruct"),
+    "llama-70b": (chat_openrouter, "meta-llama/llama-3.3-70b-instruct"),
+    "mixtral-8x22b": (chat_openrouter, "mistralai/mixtral-8x22b-instruct"),
+    "mistral-small": (chat_openrouter, "mistralai/mistral-small-3.2-24b-instruct"),
+    "mistral-medium": (chat_openrouter, "mistralai/mistral-medium-3.1"),
 }
 
 
@@ -296,7 +297,7 @@ if __name__ == "__main__":
     parser.add_argument("--target-max-tokens", type=int, default=1024, help="Target max tokens")
 
     parser.add_argument(
-        "--evaluator-model", type=str, default="gpt-4-turbo", choices=Models.keys(), help="Evaluator model"
+        "--evaluator-model", type=str, default="gpt-4o", choices=Models.keys(), help="Evaluator model"
     )
     parser.add_argument("--evaluator-temp", type=float, default=0.5, help="Evaluator temperature")
     parser.add_argument("--evaluator-top-p", type=float, default=0.1, help="Evaluator top-p")
@@ -313,19 +314,19 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--root-nodes", type=int, default=3, help="Tree of thought root node count"
-    )
+    )# 初始有几个搜索节点
     parser.add_argument(
         "--branching-factor",
         type=int,
         default=3,
         help="Tree of thought branching factor",
-    )
-    parser.add_argument("--width", type=int, default=10, help="Tree of thought width")
-    parser.add_argument("--depth", type=int, default=10, help="Tree of thought depth")
+    ) # 每个节点生成几个mutation
+    parser.add_argument("--width", type=int, default=10, help="Tree of thought width") # 每轮保留几个候选
+    parser.add_argument("--depth", type=int, default=10, help="Tree of thought depth") # depth 最多执行几轮
 
     # Misc
 
-    parser.add_argument('--stop-score', type=int, default=8, help='Stop when the score is above this value')
+    parser.add_argument('--stop-score', type=int, default=8, help='Stop when the score is above this value') 
 
     args = parser.parse_args()
 
